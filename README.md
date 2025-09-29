@@ -8,3 +8,6 @@ Followed tutorial: https://learn.unity.com/course/2d-beginner-game-sprite-flight
 - Added random obstacle spawning (every 5 seconds)
 - Added start button
 - Added exit button
+
+## Demo
+https://youtu.be/eprHhHnrtE0
