@@ -23,6 +23,8 @@ public class PlayerController : MonoBehaviour
     private Button exitButton;
     private bool isPaused = false;
     private Button continueButton;
+    private Button saveButton;
+    private Button loadButton;
 
 
     public GameObject bulletPrefab;
@@ -49,8 +51,14 @@ public class PlayerController : MonoBehaviour
         startButton = uiDocument.rootVisualElement.Q<Button>("StartButton");
         exitButton = uiDocument.rootVisualElement.Q<Button>("ExitButton");
         continueButton = uiDocument.rootVisualElement.Q<Button>("ContinueButton");
+        saveButton = uiDocument.rootVisualElement.Q<Button>("SaveButton");
+        loadButton = uiDocument.rootVisualElement.Q<Button>("LoadButton");
         startButton.style.display = DisplayStyle.Flex;
         startButton.clicked += StartGame;
+        loadButton.style.display = DisplayStyle.Flex;
+        loadButton.clicked += LoadGame;
+        saveButton.style.display = DisplayStyle.None;
+        saveButton.clicked += SaveGame;
         continueButton.style.display = DisplayStyle.None;
         exitButton.style.display = DisplayStyle.Flex;
         exitButton.clicked += ExitGame;
@@ -85,8 +93,7 @@ public class PlayerController : MonoBehaviour
         
         if (Keyboard.current.escapeKey.isPressed)
         {
-            if (isPaused) ResumeGame();
-            else PauseGame();
+            PauseGame();
         }
         elapsedTime += Time.deltaTime;
         score = Mathf.FloorToInt(elapsedTime * scoreMultiplier);
@@ -134,6 +141,7 @@ public class PlayerController : MonoBehaviour
         gameStarted = true;
         startButton.style.display = DisplayStyle.None;
         exitButton.style.display = DisplayStyle.None;
+        loadButton.style.display = DisplayStyle.None;
     }
     void PauseGame()
     {
@@ -145,6 +153,8 @@ public class PlayerController : MonoBehaviour
         restartButton.clicked += ReloadScene;
         exitButton.style.display = DisplayStyle.Flex;
         exitButton.clicked += ExitGame;
+        saveButton.style.display = DisplayStyle.Flex;
+        saveButton.clicked += SaveGame;
     }
 
     void ResumeGame()
@@ -153,6 +163,7 @@ public class PlayerController : MonoBehaviour
         continueButton.style.display = DisplayStyle.None;
         restartButton.style.display = DisplayStyle.None;
         exitButton.style.display = DisplayStyle.None;
+        saveButton.style.display = DisplayStyle.None;
         Time.timeScale = 1f;
     }
 
@@ -200,5 +211,37 @@ public class PlayerController : MonoBehaviour
         #endif
     }
     
-    
+    void SaveGame()
+    {
+        SaveSystem.SaveGame(transform, (int)score, (int)elapsedTime);
+        ExitGame();
+    }
+
+    void LoadGame()
+    {
+        SaveData data = SaveSystem.LoadGame();
+        if (data != null)
+        {
+            transform.position = new Vector3(data.playerX, data.playerY);
+            score = data.score;
+            elapsedTime = data.elapsedTime;
+
+            if (scoreText != null)
+                scoreText.text = "Score: " + score;
+
+            foreach (GameObject o in GameObject.FindGameObjectsWithTag("Obstacle"))
+            Destroy(o);
+
+            foreach (ObstacleData o in data.obstacles)
+            {
+                GameObject newObstacle = Instantiate(Resources.Load<GameObject>("Obstacle"));
+                newObstacle.transform.position = new Vector3(o.x, o.y, 0);
+                newObstacle.transform.localScale = new Vector3(o.size, o.size, 1);
+            }
+
+        }
+        ResumeGame();
+        startButton.style.display = DisplayStyle.None;
+        loadButton.style.display = DisplayStyle.None;
+    }
 }
