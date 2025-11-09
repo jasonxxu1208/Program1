@@ -1,34 +1,22 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Obstacle : MonoBehaviour
 {
-    // Start is called before the first frame update
     public float minSize = 0.5f;
     public float maxSize = 2.0f;
-    Rigidbody2D rb;
-    public float minSpeed = 50f;
-    public float maxSpeed = 150f;
-    public float maxSpinSpeed = 10f;
+    public float maxSpinSpeed = 90f;
+    private Rigidbody2D rb;
 
-    void Start()
+    void OnEnable()
     {
+        // Randomize size when activated (not just once at Start)
         float randomSize = Random.Range(minSize, maxSize);
         transform.localScale = new Vector3(randomSize, randomSize, 1);
 
-
         rb = GetComponent<Rigidbody2D>();
-        Vector2 randomDirection = Random.insideUnitCircle;
-        float randomSpeed = Random.Range(minSpeed, maxSpeed) / randomSize;
-        rb.AddForce(randomDirection * randomSpeed);
-        float randomTorque = Random.Range(-maxSpinSpeed, maxSpinSpeed);
-        rb.AddTorque(randomTorque);
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        if (rb != null)
+        {
+            rb.angularVelocity = Random.Range(-maxSpinSpeed, maxSpinSpeed);
+        }
     }
 }

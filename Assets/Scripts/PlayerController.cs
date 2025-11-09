@@ -4,24 +4,21 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
+using TMPro;
+using System;
 public class PlayerController : MonoBehaviour
 {
     // Start is called before the first frame update
-    private float elapsedTime = 0f;
-    private float score = 0f;
-    public float scoreMultiplier = 10f;
-    public float thrustForce = 1f;
-    public float maxSpeed = 10f;
+    public float moveSpeed = 4f;
     public GameObject boosterFlame;
     Rigidbody2D rb;
     public UIDocument uiDocument;
-    private Label scoreText;
     public GameObject explosionEffect;
     private Button restartButton;
     private Button startButton;
-    private bool gameStarted = false;
+    public bool gameStarted = false;
     private Button exitButton;
-    private bool isPaused = false;
+    public bool isPaused = false;
     private Button continueButton;
 
 
@@ -30,21 +27,18 @@ public class PlayerController : MonoBehaviour
     public float bulletSpeed = 10f;
     public float fireRate = 0.5f;
     private float fireTimer = 0f;
-    public float sprintMultiplier = 2f;
-    public float sprintActive = 0f;
-    public float sprintDuration = 0.5f;     
-    public float sprintRate = 2f;      
-    private float sprintTimer = 0f;
-    private float originalThrust;
     public GameObject shieldPrefab;  
     public Transform shieldPoint;   
     public float shieldRate = 5f;
     private float shieldTimer = 0f;
+    public int maxCargo = 10;             // maximum components rocket can carry
+    private int currentCargo = 0;         // current amount carried
+
+    private ProgressBar cargoBar; 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         Time.timeScale = 0f;
-        scoreText = uiDocument.rootVisualElement.Q<Label>("ScoreLabel");
         restartButton = uiDocument.rootVisualElement.Q<Button>("RestartButton");
         startButton = uiDocument.rootVisualElement.Q<Button>("StartButton");
         exitButton = uiDocument.rootVisualElement.Q<Button>("ExitButton");
@@ -56,63 +50,77 @@ public class PlayerController : MonoBehaviour
         exitButton.clicked += ExitGame;
         restartButton.style.display = DisplayStyle.None;
         restartButton.clicked += ReloadScene;
-        originalThrust = thrustForce;
+        continueButton.style.display = DisplayStyle.None;
+        continueButton.clicked += ResumeGame;
+        cargoBar = uiDocument.rootVisualElement.Q<ProgressBar>("CargoBar");
+        currentCargo = 0;
+        UpdateCargoBar();
+        SetComponentCollidersActive(true);
+        if (cargoBar != null)
+        {
+            cargoBar.lowValue = 0;
+            cargoBar.highValue = maxCargo;
+            cargoBar.value = 0;
+            cargoBar.title = "";
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
         fireTimer += Time.deltaTime;
-        sprintTimer += Time.deltaTime;
         shieldTimer += Time.deltaTime;
 
-        if (Keyboard.current.sKey.isPressed && shieldTimer >= shieldRate)
+        if (Keyboard.current.jKey.isPressed && shieldTimer >= shieldRate)
         {
             ActivateShield();
             shieldTimer = 0f;
         }
-        if (Keyboard.current.leftShiftKey.isPressed && sprintTimer >= sprintRate)
-        {
-            Sprint();
-            sprintTimer = 0f;
-        }
-
-        if (Keyboard.current.spaceKey.isPressed && fireTimer >= fireRate)
+       if (Keyboard.current.spaceKey.isPressed && fireTimer >= fireRate)
         {
             Shoot();
             fireTimer = 0f;
         }
         
-        if (Keyboard.current.escapeKey.isPressed)
+        if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
+<<<<<<< Updated upstream
             if (isPaused) ResumeGame();
             else PauseGame();
+=======
+            if (!isPaused)
+                PauseGame();
+            else
+                ResumeGame();
+>>>>>>> Stashed changes
         }
-        elapsedTime += Time.deltaTime;
-        score = Mathf.FloorToInt(elapsedTime * scoreMultiplier);
-        Debug.Log("Score: " + score);
-        scoreText.text = "Score: " + score;
-        if (Mouse.current.leftButton.isPressed)
+
+        Vector2 moveInput = Vector2.zero;
+
+        if (Keyboard.current.wKey.isPressed)
         {
-            // Calculate mouse direction
-            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.value);
-            Vector2 direction = (mousePos - transform.position).normalized;
-            // Move player in direction of mouse
-            transform.up = direction;
-            rb.AddForce(direction * thrustForce);
-            if (rb.velocity.magnitude > maxSpeed)
-            {
-                rb.velocity = rb.velocity.normalized * maxSpeed;
-            }
-        }
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-        {
+            moveInput.y += 1;
             boosterFlame.SetActive(true);
         }
-        else if (Mouse.current.leftButton.wasReleasedThisFrame)
+        if (Keyboard.current.sKey.isPressed)
         {
-            boosterFlame.SetActive(false);
+            moveInput.y -= 1;
+            boosterFlame.SetActive(true);
         }
+        if (Keyboard.current.aKey.isPressed)
+        {
+            moveInput.x -= 1;
+            boosterFlame.SetActive(true);
+        } 
+        if (Keyboard.current.dKey.isPressed)
+        {
+            moveInput.x += 1;
+            boosterFlame.SetActive(true);
+        } 
+
+        moveInput.Normalize();
+        rb.velocity = moveInput * moveSpeed * (1f - ((float)currentCargo / maxCargo)*0.5f);
+        Debug.Log("current speed" + rb.velocity.magnitude);
     }
 
     void OnCollisionEnter2D(Collision2D collision)
@@ -140,11 +148,13 @@ public class PlayerController : MonoBehaviour
         isPaused = true;
         Time.timeScale = 0f; // freeze time
         continueButton.style.display = DisplayStyle.Flex;
-        continueButton.clicked += ResumeGame;
         restartButton.style.display = DisplayStyle.Flex;
-        restartButton.clicked += ReloadScene;
         exitButton.style.display = DisplayStyle.Flex;
+<<<<<<< Updated upstream
         exitButton.clicked += ExitGame;
+=======
+        saveButton.style.display = DisplayStyle.Flex;
+>>>>>>> Stashed changes
     }
 
     void ResumeGame()
@@ -170,19 +180,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void Sprint()
-    {
-
-
-        while (sprintActive <= sprintDuration)
-        {
-            sprintActive += Time.deltaTime;
-            thrustForce = originalThrust * sprintMultiplier;
-        }
-        thrustForce = originalThrust;
-        sprintActive = 0f;
-
-    }
 
     void ActivateShield()
     {
@@ -200,5 +197,85 @@ public class PlayerController : MonoBehaviour
         #endif
     }
     
+<<<<<<< Updated upstream
     
+=======
+    void SaveGame()
+    {
+        SaveSystem.SaveGame(transform);
+        ExitGame();
+    }
+
+    void LoadGame()
+    {
+        SaveData data = SaveSystem.LoadGame();
+        if (data != null)
+        {
+            transform.position = new Vector3(data.playerX, data.playerY);
+
+            foreach (GameObject o in GameObject.FindGameObjectsWithTag("Obstacle"))
+                Destroy(o);
+
+            foreach (ObstacleData o in data.obstacles)
+            {
+                GameObject newObstacle = Instantiate(Resources.Load<GameObject>("Obstacle"));
+                newObstacle.transform.position = new Vector3(o.x, o.y, 0);
+                newObstacle.transform.localScale = new Vector3(o.size, o.size, 1);
+            }
+
+        }
+        ResumeGame();
+        startButton.style.display = DisplayStyle.None;
+        loadButton.style.display = DisplayStyle.None;
+    }
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Component"))
+        {
+            if (currentCargo < maxCargo)
+            {
+                currentCargo++;
+                UpdateCargoBar();
+                Debug.Log("Collected component! " + currentCargo + "/" + maxCargo);
+
+                other.gameObject.SetActive(false); // deactivate (return to pool)
+
+                // If we've just filled up cargo, disable all component colliders
+                if (currentCargo >= maxCargo)
+                {
+                    Debug.Log("Cargo full — disabling component collection!");
+                    SetComponentCollidersActive(false);
+                }
+            }
+            else
+            {
+                Debug.Log("Cargo full! Ignoring component.");
+            }
+        }
+        if (other.CompareTag("Portal"))
+        {
+            ExitGame();
+        }
+    }
+
+    void UpdateCargoBar()
+    {
+        if (cargoBar != null)
+        {
+            cargoBar.value = currentCargo;
+        }
+    }
+    void SetComponentCollidersActive(bool state)
+    {
+        // Get all active and inactive objects with tag "Component"
+        GameObject[] components = GameObject.FindGameObjectsWithTag("Component");
+
+        foreach (GameObject comp in components)
+        {
+            Collider2D col = comp.GetComponent<Collider2D>();
+            if (col != null)
+                col.enabled = state;
+        }
+    }
+>>>>>>> Stashed changes
 }

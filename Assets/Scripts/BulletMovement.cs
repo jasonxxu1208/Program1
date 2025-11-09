@@ -17,6 +17,7 @@ public class BulletMovement : MonoBehaviour
 
         if (other.CompareTag("Obstacle"))
         {
+            other.gameObject.SetActive(false);
             if (explosionEffect != null)
             {
                 Instantiate(explosionEffect, other.transform.position, Quaternion.identity);
