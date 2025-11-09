@@ -57,7 +57,8 @@ Rocket thruster animation (boosterFlame) activates during thrust.
 Portal and gears visually rotate and drift to simulate space motion.
 
 # Video Demonstration
-
+https://youtu.be/VNxFe-jdDjQ
+Due to the Upgrade Scene isnt created yet, so touching of portal will exit the game
 
 # Current Features Implemented
 
