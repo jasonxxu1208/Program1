@@ -6,56 +6,67 @@ using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
 using TMPro;
 using System;
+
 public class PlayerController : MonoBehaviour
 {
-    // Start is called before the first frame update
     public float moveSpeed = 4f;
     public GameObject boosterFlame;
-    Rigidbody2D rb;
+    private Rigidbody2D rb;
     public UIDocument uiDocument;
     public GameObject explosionEffect;
+
     private Button restartButton;
     private Button startButton;
-    public bool gameStarted = false;
     private Button exitButton;
-    public bool isPaused = false;
     private Button continueButton;
 
+    public bool gameStarted = false;
+    public bool isPaused = false;
 
     public GameObject bulletPrefab;
     public Transform gunPoint;
     public float bulletSpeed = 10f;
     public float fireRate = 0.5f;
     private float fireTimer = 0f;
-    public GameObject shieldPrefab;  
-    public Transform shieldPoint;   
+
+    public GameObject shieldPrefab;
+    public Transform shieldPoint;
     public float shieldRate = 5f;
     private float shieldTimer = 0f;
-    public int maxCargo = 10;             // maximum components rocket can carry
-    private int currentCargo = 0;         // current amount carried
 
-    private ProgressBar cargoBar; 
+    public int maxCargo = 10;
+    private int currentCargo = 0;
+    private ProgressBar cargoBar;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         Time.timeScale = 0f;
-        restartButton = uiDocument.rootVisualElement.Q<Button>("RestartButton");
-        startButton = uiDocument.rootVisualElement.Q<Button>("StartButton");
-        exitButton = uiDocument.rootVisualElement.Q<Button>("ExitButton");
-        continueButton = uiDocument.rootVisualElement.Q<Button>("ContinueButton");
+
+        // UI setup
+        var root = uiDocument.rootVisualElement;
+        restartButton = root.Q<Button>("RestartButton");
+        startButton = root.Q<Button>("StartButton");
+        exitButton = root.Q<Button>("ExitButton");
+        continueButton = root.Q<Button>("ContinueButton");
+
         startButton.style.display = DisplayStyle.Flex;
         startButton.clicked += StartGame;
-        continueButton.style.display = DisplayStyle.None;
-        exitButton.style.display = DisplayStyle.Flex;
-        exitButton.clicked += ExitGame;
-        restartButton.style.display = DisplayStyle.None;
-        restartButton.clicked += ReloadScene;
+
         continueButton.style.display = DisplayStyle.None;
         continueButton.clicked += ResumeGame;
-        cargoBar = uiDocument.rootVisualElement.Q<ProgressBar>("CargoBar");
+
+        exitButton.style.display = DisplayStyle.Flex;
+        exitButton.clicked += ExitGame;
+
+        restartButton.style.display = DisplayStyle.None;
+        restartButton.clicked += ReloadScene;
+
+        cargoBar = root.Q<ProgressBar>("CargoBar");
         currentCargo = 0;
         UpdateCargoBar();
         SetComponentCollidersActive(true);
+
         if (cargoBar != null)
         {
             cargoBar.lowValue = 0;
@@ -65,7 +76,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
     void Update()
     {
         fireTimer += Time.deltaTime;
@@ -76,23 +86,19 @@ public class PlayerController : MonoBehaviour
             ActivateShield();
             shieldTimer = 0f;
         }
-       if (Keyboard.current.spaceKey.isPressed && fireTimer >= fireRate)
+
+        if (Keyboard.current.spaceKey.isPressed && fireTimer >= fireRate)
         {
             Shoot();
             fireTimer = 0f;
         }
-        
+
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-<<<<<<< Updated upstream
-            if (isPaused) ResumeGame();
-            else PauseGame();
-=======
             if (!isPaused)
                 PauseGame();
             else
                 ResumeGame();
->>>>>>> Stashed changes
         }
 
         Vector2 moveInput = Vector2.zero;
@@ -111,16 +117,17 @@ public class PlayerController : MonoBehaviour
         {
             moveInput.x -= 1;
             boosterFlame.SetActive(true);
-        } 
+        }
         if (Keyboard.current.dKey.isPressed)
         {
             moveInput.x += 1;
             boosterFlame.SetActive(true);
-        } 
+        }
 
         moveInput.Normalize();
-        rb.velocity = moveInput * moveSpeed * (1f - ((float)currentCargo / maxCargo)*0.5f);
-        Debug.Log("current speed" + rb.velocity.magnitude);
+        rb.velocity = moveInput * moveSpeed * (1f - ((float)currentCargo / maxCargo) * 0.5f);
+
+        Debug.Log("Current speed: " + rb.velocity.magnitude);
     }
 
     void OnCollisionEnter2D(Collision2D collision)
@@ -143,18 +150,14 @@ public class PlayerController : MonoBehaviour
         startButton.style.display = DisplayStyle.None;
         exitButton.style.display = DisplayStyle.None;
     }
+
     void PauseGame()
     {
         isPaused = true;
-        Time.timeScale = 0f; // freeze time
+        Time.timeScale = 0f;
         continueButton.style.display = DisplayStyle.Flex;
         restartButton.style.display = DisplayStyle.Flex;
         exitButton.style.display = DisplayStyle.Flex;
-<<<<<<< Updated upstream
-        exitButton.clicked += ExitGame;
-=======
-        saveButton.style.display = DisplayStyle.Flex;
->>>>>>> Stashed changes
     }
 
     void ResumeGame()
@@ -171,7 +174,6 @@ public class PlayerController : MonoBehaviour
         if (bulletPrefab != null && gunPoint != null)
         {
             GameObject bullet = Instantiate(bulletPrefab, gunPoint.position, gunPoint.rotation);
-
             Rigidbody2D rbBullet = bullet.GetComponent<Rigidbody2D>();
             if (rbBullet != null)
             {
@@ -180,7 +182,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
     void ActivateShield()
     {
         if (shieldPrefab == null || shieldPoint == null)
@@ -188,46 +189,16 @@ public class PlayerController : MonoBehaviour
         GameObject shield = Instantiate(shieldPrefab, shieldPoint.position, shieldPoint.rotation);
         shield.transform.SetParent(shieldPoint);
     }
+
     void ExitGame()
     {
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
-        #else
+#else
         Application.Quit();
-        #endif
-    }
-    
-<<<<<<< Updated upstream
-    
-=======
-    void SaveGame()
-    {
-        SaveSystem.SaveGame(transform);
-        ExitGame();
+#endif
     }
 
-    void LoadGame()
-    {
-        SaveData data = SaveSystem.LoadGame();
-        if (data != null)
-        {
-            transform.position = new Vector3(data.playerX, data.playerY);
-
-            foreach (GameObject o in GameObject.FindGameObjectsWithTag("Obstacle"))
-                Destroy(o);
-
-            foreach (ObstacleData o in data.obstacles)
-            {
-                GameObject newObstacle = Instantiate(Resources.Load<GameObject>("Obstacle"));
-                newObstacle.transform.position = new Vector3(o.x, o.y, 0);
-                newObstacle.transform.localScale = new Vector3(o.size, o.size, 1);
-            }
-
-        }
-        ResumeGame();
-        startButton.style.display = DisplayStyle.None;
-        loadButton.style.display = DisplayStyle.None;
-    }
     void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Component"))
@@ -238,9 +209,8 @@ public class PlayerController : MonoBehaviour
                 UpdateCargoBar();
                 Debug.Log("Collected component! " + currentCargo + "/" + maxCargo);
 
-                other.gameObject.SetActive(false); // deactivate (return to pool)
+                other.gameObject.SetActive(false);
 
-                // If we've just filled up cargo, disable all component colliders
                 if (currentCargo >= maxCargo)
                 {
                     Debug.Log("Cargo full — disabling component collection!");
@@ -252,6 +222,7 @@ public class PlayerController : MonoBehaviour
                 Debug.Log("Cargo full! Ignoring component.");
             }
         }
+
         if (other.CompareTag("Portal"))
         {
             ExitGame();
@@ -265,9 +236,9 @@ public class PlayerController : MonoBehaviour
             cargoBar.value = currentCargo;
         }
     }
+
     void SetComponentCollidersActive(bool state)
     {
-        // Get all active and inactive objects with tag "Component"
         GameObject[] components = GameObject.FindGameObjectsWithTag("Component");
 
         foreach (GameObject comp in components)
@@ -277,5 +248,4 @@ public class PlayerController : MonoBehaviour
                 col.enabled = state;
         }
     }
->>>>>>> Stashed changes
 }
