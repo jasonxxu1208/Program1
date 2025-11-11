@@ -1,202 +1,202 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
-using TMPro;
-using System;
 
 public class PlayerController : MonoBehaviour
 {
+    [Header("Movement Settings")]
     public float moveSpeed = 4f;
-    public GameObject boosterFlame;
     private Rigidbody2D rb;
-    public UIDocument uiDocument;
-    public GameObject explosionEffect;
+    private Vector2 moveInput;
 
-    private Button restartButton;
-    private Button startButton;
-    private Button exitButton;
-    private Button continueButton;
-
-    public bool gameStarted = false;
-    public bool isPaused = false;
-
+    [Header("Combat Settings")]
     public GameObject bulletPrefab;
     public Transform gunPoint;
     public float bulletSpeed = 10f;
     public float fireRate = 0.5f;
     private float fireTimer = 0f;
 
+    [Header("Shield Settings")]
     public GameObject shieldPrefab;
     public Transform shieldPoint;
     public float shieldRate = 5f;
     private float shieldTimer = 0f;
 
+    [Header("Cargo Settings")]
     public int maxCargo = 10;
     private int currentCargo = 0;
     private ProgressBar cargoBar;
 
+    [Header("UI & FX")]
+    public UIDocument uiDocument;
+    public GameObject explosionEffect;
+
+    private Button startButton;
+    private Button restartButton;
+    private Button continueButton;
+    private Button exitButton;
+    private Button saveButton;
+    private Button loadButton;
+
+    private bool isPaused = false;
+    private bool gameStarted = false;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        // Start paused until player clicks Start
         Time.timeScale = 0f;
-
-        // UI setup
-        var root = uiDocument.rootVisualElement;
-        restartButton = root.Q<Button>("RestartButton");
-        startButton = root.Q<Button>("StartButton");
-        exitButton = root.Q<Button>("ExitButton");
-        continueButton = root.Q<Button>("ContinueButton");
-
-        startButton.style.display = DisplayStyle.Flex;
-        startButton.clicked += StartGame;
-
-        continueButton.style.display = DisplayStyle.None;
-        continueButton.clicked += ResumeGame;
-
-        exitButton.style.display = DisplayStyle.Flex;
-        exitButton.clicked += ExitGame;
-
-        restartButton.style.display = DisplayStyle.None;
-        restartButton.clicked += ReloadScene;
-
-        cargoBar = root.Q<ProgressBar>("CargoBar");
-        currentCargo = 0;
+        SetupUI();
         UpdateCargoBar();
         SetComponentCollidersActive(true);
+    }
+
+    void SetupUI()
+    {
+        var root = uiDocument.rootVisualElement;
+
+        startButton = root.Q<Button>("StartButton");
+        restartButton = root.Q<Button>("RestartButton");
+        continueButton = root.Q<Button>("ContinueButton");
+        exitButton = root.Q<Button>("ExitButton");
+        saveButton = root.Q<Button>("SaveButton");
+        loadButton = root.Q<Button>("LoadButton");
+        cargoBar = root.Q<ProgressBar>("CargoBar");
+
+        // Assign button callbacks
+        startButton.clicked += StartGame;
+        restartButton.clicked += ReloadScene;
+        continueButton.clicked += ResumeGame;
+        exitButton.clicked += ExitGame;
+        saveButton.clicked += SaveGame;
+        loadButton.clicked += LoadGame;
+
+        // Show only start menu initially
+        startButton.style.display = DisplayStyle.Flex;
+        loadButton.style.display = DisplayStyle.Flex;
+        exitButton.style.display = DisplayStyle.Flex;
+
+        restartButton.style.display = DisplayStyle.None;
+        continueButton.style.display = DisplayStyle.None;
+        saveButton.style.display = DisplayStyle.None;
 
         if (cargoBar != null)
         {
             cargoBar.lowValue = 0;
             cargoBar.highValue = maxCargo;
             cargoBar.value = 0;
-            cargoBar.title = "";
+            cargoBar.title = "Cargo";
         }
     }
 
     void Update()
     {
+        if (!gameStarted) return;
+
         fireTimer += Time.deltaTime;
         shieldTimer += Time.deltaTime;
 
-        if (Keyboard.current.jKey.isPressed && shieldTimer >= shieldRate)
-        {
-            ActivateShield();
-            shieldTimer = 0f;
-        }
+        HandleInput();
+    }
 
-        if (Keyboard.current.spaceKey.isPressed && fireTimer >= fireRate)
+    void FixedUpdate()
+    {
+        if (!gameStarted || isPaused) return;
+        float speedMultiplier = 1f - ((float)currentCargo / maxCargo) * 0.5f;
+        rb.velocity = moveInput * moveSpeed * speedMultiplier;
+    }
+
+    void HandleInput()
+    {
+        var kb = Keyboard.current;
+        moveInput = Vector2.zero;
+
+        if (kb.wKey.isPressed) moveInput.y += 1;
+        if (kb.sKey.isPressed) moveInput.y -= 1;
+        if (kb.aKey.isPressed) moveInput.x -= 1;
+        if (kb.dKey.isPressed) moveInput.x += 1;
+        moveInput.Normalize();
+
+        if (kb.spaceKey.isPressed && fireTimer >= fireRate)
         {
             Shoot();
             fireTimer = 0f;
         }
 
-        if (Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (kb.jKey.isPressed && shieldTimer >= shieldRate)
+        {
+            ActivateShield();
+            shieldTimer = 0f;
+        }
+
+        if (kb.escapeKey.wasPressedThisFrame)
         {
             if (!isPaused)
                 PauseGame();
             else
                 ResumeGame();
         }
-
-        Vector2 moveInput = Vector2.zero;
-
-        if (Keyboard.current.wKey.isPressed)
-        {
-            moveInput.y += 1;
-            boosterFlame.SetActive(true);
-        }
-        if (Keyboard.current.sKey.isPressed)
-        {
-            moveInput.y -= 1;
-            boosterFlame.SetActive(true);
-        }
-        if (Keyboard.current.aKey.isPressed)
-        {
-            moveInput.x -= 1;
-            boosterFlame.SetActive(true);
-        }
-        if (Keyboard.current.dKey.isPressed)
-        {
-            moveInput.x += 1;
-            boosterFlame.SetActive(true);
-        }
-
-        moveInput.Normalize();
-        rb.velocity = moveInput * moveSpeed * (1f - ((float)currentCargo / maxCargo) * 0.5f);
-
-        Debug.Log("Current speed: " + rb.velocity.magnitude);
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
+    void Shoot()
     {
-        Destroy(gameObject);
-        Instantiate(explosionEffect, transform.position, transform.rotation);
-        restartButton.style.display = DisplayStyle.Flex;
-        exitButton.style.display = DisplayStyle.Flex;
+        if (bulletPrefab == null || gunPoint == null) return;
+        GameObject bullet = Instantiate(bulletPrefab, gunPoint.position, gunPoint.rotation);
+        Rigidbody2D rbBullet = bullet.GetComponent<Rigidbody2D>();
+        if (rbBullet != null)
+            rbBullet.velocity = gunPoint.up * bulletSpeed;
     }
 
-    void ReloadScene()
+    void ActivateShield()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        if (shieldPrefab == null || shieldPoint == null) return;
+        GameObject shield = Instantiate(shieldPrefab, shieldPoint.position, shieldPoint.rotation);
+        shield.transform.SetParent(shieldPoint);
     }
 
     void StartGame()
     {
-        Time.timeScale = 1f;
         gameStarted = true;
+        isPaused = false;
+        Time.timeScale = 1f;
+
         startButton.style.display = DisplayStyle.None;
         exitButton.style.display = DisplayStyle.None;
+        loadButton.style.display = DisplayStyle.None;
+        saveButton.style.display = DisplayStyle.None;
     }
 
     void PauseGame()
     {
         isPaused = true;
         Time.timeScale = 0f;
+
         continueButton.style.display = DisplayStyle.Flex;
         restartButton.style.display = DisplayStyle.Flex;
         exitButton.style.display = DisplayStyle.Flex;
+        saveButton.style.display = DisplayStyle.Flex;
     }
 
     void ResumeGame()
     {
         isPaused = false;
+        Time.timeScale = 1f;
+
         continueButton.style.display = DisplayStyle.None;
         restartButton.style.display = DisplayStyle.None;
         exitButton.style.display = DisplayStyle.None;
-        Time.timeScale = 1f;
+        saveButton.style.display = DisplayStyle.None;
     }
 
-    void Shoot()
+    void OnCollisionEnter2D(Collision2D collision)
     {
-        if (bulletPrefab != null && gunPoint != null)
-        {
-            GameObject bullet = Instantiate(bulletPrefab, gunPoint.position, gunPoint.rotation);
-            Rigidbody2D rbBullet = bullet.GetComponent<Rigidbody2D>();
-            if (rbBullet != null)
-            {
-                rbBullet.velocity = gunPoint.up * bulletSpeed;
-            }
-        }
-    }
+        Instantiate(explosionEffect, transform.position, transform.rotation);
+        Destroy(gameObject);
 
-    void ActivateShield()
-    {
-        if (shieldPrefab == null || shieldPoint == null)
-            return;
-        GameObject shield = Instantiate(shieldPrefab, shieldPoint.position, shieldPoint.rotation);
-        shield.transform.SetParent(shieldPoint);
-    }
-
-    void ExitGame()
-    {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
+        restartButton.style.display = DisplayStyle.Flex;
+        exitButton.style.display = DisplayStyle.Flex;
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -207,26 +207,54 @@ public class PlayerController : MonoBehaviour
             {
                 currentCargo++;
                 UpdateCargoBar();
-                Debug.Log("Collected component! " + currentCargo + "/" + maxCargo);
-
                 other.gameObject.SetActive(false);
 
                 if (currentCargo >= maxCargo)
-                {
-                    Debug.Log("Cargo full — disabling component collection!");
                     SetComponentCollidersActive(false);
-                }
-            }
-            else
-            {
-                Debug.Log("Cargo full! Ignoring component.");
             }
         }
-
-        if (other.CompareTag("Portal"))
+        else if (other.CompareTag("Portal"))
         {
             ExitGame();
         }
+    }
+
+    void ReloadScene() => SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
+    void ExitGame()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
+    void SaveGame()
+    {
+        SaveSystem.SaveGame(transform);
+        ExitGame();
+    }
+
+    void LoadGame()
+    {
+        SaveData data = SaveSystem.LoadGame();
+        if (data != null)
+        {
+            transform.position = new Vector3(data.playerX, data.playerY);
+            foreach (GameObject o in GameObject.FindGameObjectsWithTag("Obstacle"))
+                Destroy(o);
+            foreach (ObstacleData o in data.obstacles)
+            {
+                GameObject newObstacle = Instantiate(Resources.Load<GameObject>("Obstacle"));
+                newObstacle.transform.position = new Vector3(o.x, o.y, 0);
+                newObstacle.transform.localScale = new Vector3(o.size, o.size, 1);
+            }
+        }
+
+        ResumeGame();
+        startButton.style.display = DisplayStyle.None;
+        loadButton.style.display = DisplayStyle.None;
     }
 
     void UpdateCargoBar()
@@ -234,18 +262,16 @@ public class PlayerController : MonoBehaviour
         if (cargoBar != null)
         {
             cargoBar.value = currentCargo;
+            cargoBar.title = $"Cargo: {currentCargo}/{maxCargo}";
         }
     }
 
     void SetComponentCollidersActive(bool state)
     {
-        GameObject[] components = GameObject.FindGameObjectsWithTag("Component");
-
-        foreach (GameObject comp in components)
+        foreach (GameObject comp in GameObject.FindGameObjectsWithTag("Component"))
         {
             Collider2D col = comp.GetComponent<Collider2D>();
-            if (col != null)
-                col.enabled = state;
+            if (col != null) col.enabled = state;
         }
     }
 }
