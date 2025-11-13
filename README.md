@@ -87,7 +87,7 @@ Introduce enemy drones
 Add background parallax
 
 Sound effects and background music
-
+ 
 Mission completion animation instead of instant
 
 Spaceship upgrade system
