@@ -57,8 +57,8 @@ Rocket thruster animation (boosterFlame) activates during thrust.
 Portal and gears visually rotate and drift to simulate space motion.
 
 # Video Demonstration
-https://youtu.be/VNxFe-jdDjQ
-Due to the Upgrade Scene isnt created yet, so touching of portal will exit the game
+https://youtu.be/v_p71OUMySQ
+Update background music, sound effect for shooting bullet and explosion, trigger video and music for entering the portal
 
 # Current Features Implemented
 
@@ -85,10 +85,6 @@ UI built using Unity UI Toolkit
 Introduce enemy drones
 
 Add background parallax
-
-Sound effects and background music
- 
-Mission completion animation instead of instant
 
 Spaceship upgrade system
  
