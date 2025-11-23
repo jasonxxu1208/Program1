@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
+using UnityEngine.Video;
+using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
@@ -31,6 +33,12 @@ public class PlayerController : MonoBehaviour
     [Header("UI & FX")]
     public UIDocument uiDocument;
     public GameObject explosionEffect;
+
+    [Header("Video & Audio")]
+    public VideoPlayer portalVideoPlayer;
+    public AudioSource portalMusicSource;
+    public AudioClip portalMusicClip;
+    public AudioSource backgroundMusic;
 
     private Button startButton;
     private Button restartButton;
@@ -177,6 +185,8 @@ public class PlayerController : MonoBehaviour
         restartButton.style.display = DisplayStyle.Flex;
         exitButton.style.display = DisplayStyle.Flex;
         saveButton.style.display = DisplayStyle.Flex;
+        
+        
     }
 
     void ResumeGame()
@@ -215,7 +225,21 @@ public class PlayerController : MonoBehaviour
         }
         else if (other.CompareTag("Portal"))
         {
-            ExitGame();
+            Time.timeScale = 0f;
+            if (backgroundMusic.isPlaying)
+            backgroundMusic.Stop();
+            // Play Triggered Music
+            if (portalMusicSource != null && portalMusicClip != null)
+            {
+                portalMusicSource.PlayOneShot(portalMusicClip);
+            }
+
+            // Play Triggered Video
+            if (portalVideoPlayer != null)
+            {
+                portalVideoPlayer.Play();
+            }
+            StartCoroutine(DelayedExit(3f));
         }
     }
 
@@ -223,6 +247,7 @@ public class PlayerController : MonoBehaviour
 
     void ExitGame()
     {
+        Debug.Log("Exiting game now...");
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -273,5 +298,12 @@ public class PlayerController : MonoBehaviour
             Collider2D col = comp.GetComponent<Collider2D>();
             if (col != null) col.enabled = state;
         }
+    }
+
+    IEnumerator DelayedExit(float delaySeconds)
+    {
+        Debug.Log("DelayedExit started");
+        yield return new WaitForSeconds(delaySeconds);
+        ExitGame();
     }
 }
